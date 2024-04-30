@@ -1,7 +1,7 @@
 #include "utils.h"
 
-#include <stdint.h>
-#include <stdlib.h>
+#include <linux/types.h>
+#include <linux/slab.h> 
 
 #include "GF.h"
 #include "poly.h"
@@ -43,5 +43,19 @@ uint64_t fpow(uint8_t base, uint8_t exp) {
     base *= base;
     exp = exp / 2;
   }
+  return res;
+}
+
+void *xkmalloc(size_t size) {
+  void *res = kmalloc(size, GFP_KERNEL);
+  if (!res)
+    return NULL;
+  return res;
+}
+
+void *xkcalloc(size_t nmemb, size_t size) {
+  void *res = kcalloc(nmemb, size, GFP_KERNEL);
+  if (!res)
+    return NULL;
   return res;
 }

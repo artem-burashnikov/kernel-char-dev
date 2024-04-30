@@ -1,7 +1,6 @@
 #pragma once
 
-#include <stddef.h>
-#include <stdint.h>
+#include <linux/types.h>
 
 #include "poly.h"
 

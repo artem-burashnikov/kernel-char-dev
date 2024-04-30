@@ -1,6 +1,6 @@
 #pragma once
 
-#include <stdint.h>
+#include <linux/types.h>
 
 #define MAX(A, B) ((A) > (B) ? (A) : (B))
 
@@ -11,3 +11,7 @@ int8_t inverse(int8_t a, int8_t p);
 
 // Fast base to the exponent.
 uint64_t fpow(uint8_t base, uint8_t exp);
+
+void *xkcalloc(size_t nmemb, size_t size);
+
+void *xkmalloc(size_t size);

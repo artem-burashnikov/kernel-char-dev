@@ -1,11 +1,7 @@
 #include "GF.h"
 
-#include <assert.h>
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
+#include <linux/types.h>
+#include <linux/slab.h>
 
 #include "poly.h"
 #include "utils.h"
@@ -27,10 +23,10 @@ poly_t IGF2_32 = {.deg = 32, .coeff = IGF2_32_coeff};
 GF_t GF2_32 = {.p = 2, .I = &IGF2_32};
 
 GF_t *GF_init_field(uint8_t p, poly_t I) {
-  GF_t *GF = malloc(sizeof(*GF));
+  GF_t *GF = xkmalloc(sizeof(*GF));
   poly_t *a = poly_from_array(I.deg, I.coeff);
   if (!GF || !a) {
-    free(GF);
+    kfree(GF);
     poly_destroy(a);
     return NULL;
   }
@@ -42,14 +38,14 @@ GF_t *GF_init_field(uint8_t p, poly_t I) {
 void GF_destroy_field(GF_t *GF) {
   if (GF) {
     poly_destroy(GF->I);
-    free(GF);
+    kfree(GF);
   }
 }
 
 void GF_elem_destroy(GF_elem_t *a) {
   if (a) {
     poly_destroy(a->poly);
-    free(a);
+    kfree(a);
   }
 }
 
@@ -71,10 +67,10 @@ GF_elem_t *GF_elem_from_array(uint8_t deg, uint8_t *coeff, GF_t *GF) {
     return NULL;
   }
 
-  GF_elem_t *a = malloc(sizeof(*a));
+  GF_elem_t *a = xkmalloc(sizeof(*a));
   poly_t *poly = poly_from_array(deg, coeff);
   if (!a || !poly) {
-    free(a);
+    kfree(a);
     poly_destroy(poly);
     return NULL;
   }
@@ -90,9 +86,9 @@ GF_elem_t *GF_elem_from_array(uint8_t deg, uint8_t *coeff, GF_t *GF) {
     poly_div(poly, *poly, *GF->I, GF->p);
   }
 
-  uint8_t *buff = calloc(GF->I->deg, sizeof(*coeff));
+  uint8_t *buff = xkcalloc(GF->I->deg, sizeof(*coeff));
   memcpy(buff, poly->coeff, sizeof(*poly->coeff) * (poly->deg + 1));
-  free(poly->coeff);
+  kfree(poly->coeff);
 
   poly->coeff = buff;
   a->GF = GF;
@@ -104,10 +100,10 @@ GF_elem_t *GF_elem_get_neutral(GF_t *GF) {
   if (!GF) {
     return NULL;
   }
-  GF_elem_t *neutral = malloc(sizeof(*neutral));
+  GF_elem_t *neutral = xkmalloc(sizeof(*neutral));
   poly_t *poly = poly_create_zero(GF->I->deg);
   if (!neutral || !poly) {
-    free(neutral);
+    kfree(neutral);
     poly_destroy(poly);
     return NULL;
   }

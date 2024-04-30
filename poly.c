@@ -1,11 +1,7 @@
 #include "poly.h"
 
-#include <assert.h>
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
+#include <linux/types.h>
+#include <linux/slab.h> 
 
 #include "utils.h"
 
@@ -14,11 +10,11 @@ poly_t *poly_from_array(uint8_t deg, uint8_t *coeff) {
     return NULL;
   }
   // Assume deg < len(coeff).
-  poly_t *poly = malloc(sizeof(*poly));
-  uint8_t *tmp = malloc(sizeof(*coeff) * (deg + 1));
+  poly_t *poly = xkmalloc(sizeof(*poly));
+  uint8_t *tmp = xkmalloc(sizeof(*coeff) * (deg + 1));
   if (!poly || !tmp) {
-    free(poly);
-    free(tmp);
+    kfree(poly);
+    kfree(tmp);
     return NULL;
   }
   poly->deg = deg;
@@ -29,14 +25,14 @@ poly_t *poly_from_array(uint8_t deg, uint8_t *coeff) {
 
 void poly_destroy(poly_t *poly) {
   if (poly) {
-    free(poly->coeff);
-    free(poly);
+    kfree(poly->coeff);
+    kfree(poly);
   }
 }
 
 bool poly_eq(const poly_t *a, const poly_t *b) {
   if (!a || !b || (a->deg != b->deg)) {
-    return false;
+    return 0;
   }
   return !memcmp(a->coeff, b->coeff, (a->deg + 1) * sizeof(*a->coeff));
 }
@@ -45,11 +41,11 @@ poly_t *poly_create_zero(size_t len) {
   if (!len) {
     return NULL;
   }
-  poly_t *res = malloc(sizeof(*res));
-  uint8_t *tmp = malloc(sizeof(*tmp) * len);
+  poly_t *res = xkmalloc(sizeof(*res));
+  uint8_t *tmp = xkmalloc(sizeof(*tmp) * len);
   if (!res || !tmp) {
-    free(res);
-    free(tmp);
+    kfree(res);
+    kfree(tmp);
     return NULL;
   }
   res->deg = 0;

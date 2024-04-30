@@ -6,7 +6,6 @@ rngdrv-objs := driver.o GF.o poly.o utils.o
 ccflags-y := -std=gnu99
 
 KDIR := /lib/modules/$(shell uname -r)/build
-PWD := $(CURDIR)
 
 all:
 	make -C $(KDIR) M=$(PWD) modules

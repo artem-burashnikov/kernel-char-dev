@@ -1,8 +1,7 @@
 #pragma once
 
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
+#include <linux/string.h>
+#include <linux/types.h>
 
 // Polynomial.
 typedef struct {
