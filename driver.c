@@ -11,51 +11,88 @@ MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Artem Burashnikov"); 
 MODULE_DESCRIPTION("A pseudo-random number generator.");
 
-static int device_open(struct inode *, struct file *);
-static int device_release(struct inode *, struct file *);
-static ssize_t device_read(struct file *, char __user *, size_t, loff_t *);
+static int rngdrv_open(struct inode *inode, struct file *file);
+static int rngdrv_release(struct inode *inode, struct file *file);
+static ssize_t rngdrv_write(struct file *filp, const char __user *buffer, size_t length, loff_t *offset);
+static ssize_t rngdrv_read(struct file *filp, char __user *buffer, size_t length, loff_t *offset);
 
 #define SUCCESS 0
 #define DEVICE_NAME "rngdrv"
 
 enum {
-  CDEV_NOT_USED = 0,
-  CDEV_EXCLUSIVE_OPEN = 1,
+        CDEV_NOT_USED = 0,
+        CDEV_EXCLUSIVE_OPEN = 1,
 };
 
 static int major;
 
-static atomic_t already_open = ATOMIC_INIT(CDEV_NOT_USED);
+static atomic_t cdev_in_use = ATOMIC_INIT(CDEV_NOT_USED);
 
 static struct class *cls;
 
 static struct file_operations fops = {
-  .owner = THIS_MODULE,
+        .owner = THIS_MODULE,
+        .open = rngdrv_open,
+        .release = rngdrv_release,
+        .write = rngdrv_write,
+        .read = rngdrv_read,
 };
 
-static int __init init_rngdrv(void) {
-  major = register_chrdev(0, DEVICE_NAME, &fops);
-  if (major < 0) {
-    pr_alert("Failed to initialize a device with major %d\n", major);
-    return major;
-  }
-
-  pr_info("Successfully initialized a device with major %d\n", major);
-
-  cls = class_create(DEVICE_NAME);
-  device_create(cls, NULL, MKDEV(major, 0), NULL, DEVICE_NAME);
-  pr_info("Device is created at /dev/%s\n", DEVICE_NAME);
-
-  return SUCCESS;
+static int rngdrv_open(struct inode *inode, struct file *file)
+{
+        if (atomic_cmpxchg(&cdev_in_use, CDEV_NOT_USED, CDEV_EXCLUSIVE_OPEN)) return -EBUSY;
+        
+        pr_info("Successfully opened a device\n");
+        try_module_get(THIS_MODULE);
+  
+        return SUCCESS;
 }
 
-static void __exit cleanup_rngdrv(void) {
-  device_destroy(cls, MKDEV(major, 0));
-  class_destroy(cls);
-  unregister_chrdev(major, DEVICE_NAME);
-  pr_info("Successfully unregistered and destroyed a device\n");
-  return;
+static int rngdrv_release(struct inode *inode, struct file *file)
+{
+        atomic_set(&cdev_in_use, CDEV_NOT_USED);
+        module_put(THIS_MODULE);
+        pr_info("Successfully closed a device\n");
+        return SUCCESS;
+}
+
+static ssize_t rngdrv_write(struct file *file, const char __user *buffer, size_t count, loff_t *offset)
+{
+        pr_alert("Write operation is not supported.\n"); 
+        return -EINVAL; 
+}
+
+static ssize_t rngdrv_read(struct file *file, char __user *buffer, size_t count, loff_t *offset)
+{
+        /* TODO */
+        return SUCCESS;
+}
+
+static int __init rngdrv_init(void)
+{
+        major = register_chrdev(0, DEVICE_NAME, &fops);
+        if (major < 0) {
+                pr_alert("Failed to initialize a device with major %d\n", major);
+                return major;
+        }
+
+        pr_info("Successfully initialized a device with major %d\n", major);
+
+        cls = class_create(DEVICE_NAME);
+        device_create(cls, NULL, MKDEV(major, 0), NULL, DEVICE_NAME);
+        pr_info("Device is created at /dev/%s\n", DEVICE_NAME);
+
+        return SUCCESS;
+}
+
+static void __exit rngdrv_cleanup(void)
+{
+        device_destroy(cls, MKDEV(major, 0));
+        class_destroy(cls);
+        unregister_chrdev(major, DEVICE_NAME);
+        pr_info("Successfully unregistered and destroyed a device\n");
+        return;
 } 
 
-module_init(init_rngdrv);
-module_exit(cleanup_rngdrv);
+module_init(rngdrv_init);
+module_exit(rngdrv_cleanup);
