@@ -1,6 +1,5 @@
 #pragma once
 
-#include <linux/string.h>
 #include <linux/types.h>
 
 // Polynomial.

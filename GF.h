@@ -5,13 +5,13 @@
 #include "poly.h"
 
 // Galois field.
-typedef struct {
+typedef struct GF {
   uint8_t p;  // Characteristic of the field GF(p).
   poly_t *I;  // Irreducible polynomial over GF(p)[x].
 } GF_t;
 
 // Element of the Galois field.
-typedef struct {
+typedef struct GF_elem {
   GF_t *GF;      // Galois field.
   poly_t *poly;  // Element of the GF(p)[x]/(I).
 } GF_elem_t;
@@ -28,6 +28,7 @@ extern GF_t GF2_32;
 /* Initialize GF(P)[x]/(I) */
 GF_t *GF_init_field(uint8_t p, poly_t I);
 
+/* Destryo a field structure. */
 void GF_destroy_field(GF_t *GF);
 
 /* Destroy a given element of the Galois Field.
@@ -40,15 +41,11 @@ GF_elem_t *GF_elem_from_array(uint8_t deg, uint8_t *coeff, GF_t *GF);
 
 /* Convert to and from uint8, uint16, uint32 to the element of the GF(2). */
 GF_elem_t *GF_elem_from_uint8(uint8_t x);
-
 GF_elem_t *GF_elem_from_uint16(uint16_t x);
-
 GF_elem_t *GF_elem_from_uint32(uint32_t x);
 
 uint8_t GF_elem_to_uint8(GF_elem_t *a);
-
 uint16_t GF_elem_to_uint16(GF_elem_t *a);
-
 uint32_t GF_elem_to_uint32(GF_elem_t *a);
 
 /* Return 1 if the given fields are equal.
@@ -78,4 +75,3 @@ GF_elem_t *GF_elem_get_neutral(GF_t *GF);
 
 /* Return unity element of the given finite field. */
 GF_elem_t *GF_elem_get_unity(GF_t *GF);
-
