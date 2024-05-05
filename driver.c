@@ -1,35 +1,71 @@
-#include <linux/atomic.h> /* Atomic operations usable in machine independent code */
-#include <linux/cdev.h>   /* Character device manipulation */
-#include <linux/fs.h>     /* Definitions for file table structures */
-#include <linux/init.h>   /* Macros used to mark some functions or initialized data */
-#include <linux/module.h> /* Required by all modules */
-#include <linux/printk.h> /* For logging */
-#include <linux/types.h>  /* Linux specific types */
-#include <asm/uaccess.h>  /* User space memory access functions */
+#include <linux/atomic.h>      /* Atomic operations usable in machine independent code */
+#include <linux/cdev.h>        /* Character device manipulation */
+#include <linux/fs.h>          /* Definitions for file table structures */
+#include <linux/init.h>        /* Macros used to mark some functions or initialized data */
+#include <linux/module.h>      /* Required by all modules */
+#include <linux/moduleparam.h> /* Module parameters. */
+#include <linux/printk.h>      /* For logging */
+#include <linux/types.h>       /* Linux specific types */
+#include <asm/uaccess.h>       /* User space memory access functions */
+
+#include "GF.h"
+#include "poly.h"
+#include "utils.h"
+
+#define DEVICE_NAME "rngdrv"
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Artem Burashnikov"); 
 MODULE_DESCRIPTION("A pseudo-random number generator.");
 
+/* Return status code. */
+#define SUCCESS 0
+
+/* MAX_LENGTH is set to 92 because ssize_t can't fit the number > 92 */
+#define MAX_LENGTH 92
+
+/* Order of the CRS. */
+static uint8_t crs_ord = 0;
+module_param(crs_ord, byte, 0000);
+MODULE_PARM_DESC(crs_ord, "Order of the CRS");
+
+/* Initial constant. */
+static uint8_t crs_const = 0;
+module_param(crs_const, byte, 0000);
+MODULE_PARM_DESC(crs_const, "CRS constant");
+
+/* Array of initial coeffictions. */
+static uint8_t crs_coeffs[MAX_LENGTH];
+module_param_array(crs_coeffs, byte, NULL, 0000);
+MODULE_PARM_DESC(crs_coeffs, "An array of initial CRS coefficients");
+
+/* Array of inital values. */
+static uint8_t crs_vals[MAX_LENGTH];
+module_param_array(crs_vals, byte, NULL, 0000);
+MODULE_PARM_DESC(crs_vals, "An array of initial CRS bytes");
+
+/* CRS over GF256. */
+static GF_elem_t *crs_seq[MAX_LENGTH];
+
+/* File operations prototpyes. */
 static int rngdrv_open(struct inode *inode, struct file *file);
 static int rngdrv_release(struct inode *inode, struct file *file);
 static ssize_t rngdrv_write(struct file *filp, const char __user *buffer, size_t length, loff_t *offset);
 static ssize_t rngdrv_read(struct file *filp, char __user *buffer, size_t length, loff_t *offset);
 
-#define SUCCESS 0
-#define DEVICE_NAME "rngdrv"
-
+/* Device availability status. */
 enum {
         CDEV_NOT_USED = 0,
         CDEV_EXCLUSIVE_OPEN = 1,
 };
 
-static int major;
-
 static atomic_t cdev_in_use = ATOMIC_INIT(CDEV_NOT_USED);
 
+/* Character device stuff. */
+static int major;
 static struct class *cls;
 
+/* File interface implementation. */
 static struct file_operations fops = {
         .owner = THIS_MODULE,
         .open = rngdrv_open,
@@ -40,7 +76,9 @@ static struct file_operations fops = {
 
 static int rngdrv_open(struct inode *inode, struct file *file)
 {
-        if (atomic_cmpxchg(&cdev_in_use, CDEV_NOT_USED, CDEV_EXCLUSIVE_OPEN)) return -EBUSY;
+        if (atomic_cmpxchg(&cdev_in_use, CDEV_NOT_USED, CDEV_EXCLUSIVE_OPEN)) {
+                return -EBUSY;
+        }
         
         pr_info("Successfully opened a device\n");
         try_module_get(THIS_MODULE);
@@ -70,6 +108,8 @@ static ssize_t rngdrv_read(struct file *file, char __user *buffer, size_t count,
 
 static int __init rngdrv_init(void)
 {
+        uint8_t i;
+
         major = register_chrdev(0, DEVICE_NAME, &fops);
         if (major < 0) {
                 pr_alert("Failed to initialize a device with major %d\n", major);
@@ -82,11 +122,25 @@ static int __init rngdrv_init(void)
         device_create(cls, NULL, MKDEV(major, 0), NULL, DEVICE_NAME);
         pr_info("Device is created at /dev/%s\n", DEVICE_NAME);
 
+        printk(KERN_DEBUG "crs_ord=%d\n", crs_ord);
+
+        /* Set initial elements of CRS. */
+        for (i = 0; i < crs_ord; ++i) {
+                crs_seq[i] = GF_elem_from_uint8(crs_vals[i]);
+        }
+
         return SUCCESS;
 }
 
 static void __exit rngdrv_cleanup(void)
-{
+{       
+        uint8_t i;
+        
+        /* Free elements of CRS. */
+        for (i = 0; i < crs_ord; ++i) {
+                GF_elem_destroy(crs_seq[i]);
+        }
+
         device_destroy(cls, MKDEV(major, 0));
         class_destroy(cls);
         unregister_chrdev(major, DEVICE_NAME);
