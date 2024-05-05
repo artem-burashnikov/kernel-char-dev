@@ -29,23 +29,26 @@ static uint8_t crs_ord = 0;
 module_param(crs_ord, byte, 0000);
 MODULE_PARM_DESC(crs_ord, "Order of the CRS");
 
-/* Initial constant. */
+/* Initial CRS constant. */
 static uint8_t crs_const = 0;
 module_param(crs_const, byte, 0000);
 MODULE_PARM_DESC(crs_const, "CRS constant");
 
-/* Array of initial coeffictions. */
+/* Array of initial coeffitions. */
 static uint8_t crs_coeffs[MAX_LENGTH];
 module_param_array(crs_coeffs, byte, NULL, 0000);
-MODULE_PARM_DESC(crs_coeffs, "An array of initial CRS coefficients");
+MODULE_PARM_DESC(crs_coeffs, "An array of CRS coefficients");
 
 /* Array of inital values. */
 static uint8_t crs_vals[MAX_LENGTH];
 module_param_array(crs_vals, byte, NULL, 0000);
 MODULE_PARM_DESC(crs_vals, "An array of initial CRS bytes");
 
-/* CRS over GF256. */
-static GF_elem_t *crs_seq[MAX_LENGTH];
+/* CRS over finite field. */
+static GF_elem_t *crs_gf_const = NULL;
+static GF_elem_t *crs_gf_coeffs[MAX_LENGTH];
+static GF_elem_t *crs_gf_vals[MAX_LENGTH];
+static GF_elem_t *crs_gf_next_val = NULL;
 
 /* File operations prototpyes. */
 static int rngdrv_open(struct inode *inode, struct file *file);
@@ -59,6 +62,7 @@ enum {
         CDEV_EXCLUSIVE_OPEN = 1,
 };
 
+/* Used to prevent concurrent access into the same device. */ 
 static atomic_t cdev_in_use = ATOMIC_INIT(CDEV_NOT_USED);
 
 /* Character device stuff. */
@@ -109,7 +113,8 @@ static ssize_t rngdrv_read(struct file *file, char __user *buffer, size_t count,
 static int __init rngdrv_init(void)
 {
         uint8_t i;
-
+        
+        /* Register and create the device dynamically. */
         major = register_chrdev(0, DEVICE_NAME, &fops);
         if (major < 0) {
                 pr_alert("Failed to initialize a device with major %d\n", major);
@@ -122,11 +127,12 @@ static int __init rngdrv_init(void)
         device_create(cls, NULL, MKDEV(major, 0), NULL, DEVICE_NAME);
         pr_info("Device is created at /dev/%s\n", DEVICE_NAME);
 
-        printk(KERN_DEBUG "crs_ord=%d\n", crs_ord);
-
         /* Set initial elements of CRS. */
+        crs_gf_const = GF_elem_from_uint8(crs_const);
+        crs_gf_next_val = GF_elem_get_neutral(&GF2_8);
         for (i = 0; i < crs_ord; ++i) {
-                crs_seq[i] = GF_elem_from_uint8(crs_vals[i]);
+                crs_gf_coeffs[i] = GF_elem_from_uint8(crs_coeffs[i]); 
+                crs_gf_vals[i] = GF_elem_from_uint8(crs_vals[i]);
         }
 
         return SUCCESS;
@@ -135,10 +141,13 @@ static int __init rngdrv_init(void)
 static void __exit rngdrv_cleanup(void)
 {       
         uint8_t i;
-        
+
         /* Free elements of CRS. */
+        GF_elem_destroy(crs_gf_const);
+        GF_elem_destroy(crs_gf_next_val);
         for (i = 0; i < crs_ord; ++i) {
-                GF_elem_destroy(crs_seq[i]);
+                GF_elem_destroy(crs_gf_coeffs[i]);
+                GF_elem_destroy(crs_gf_vals[i]);
         }
 
         device_destroy(cls, MKDEV(major, 0));
