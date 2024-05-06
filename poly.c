@@ -63,20 +63,20 @@ void poly_normalize_deg(poly_t *a) {
 }
 
 // Set res = a + b, where a and b are polynomials over Fp.
-void poly_sum(poly_t *res, poly_t a, poly_t b, uint8_t p) {
+void poly_sum(poly_t *res, poly_t *a, poly_t *b, uint8_t p) {
   if (!res) {
     return;
   }
   // Using tmp variable w allows a or b to be passed as res.
   uint8_t w;
-  size_t max_deg = MAX(a.deg, b.deg);
+  size_t max_deg = MAX(a->deg, b->deg);
   for (size_t i = 0; i <= max_deg; ++i) {
     w = 0;
-    if (i <= a.deg) {
-      w += a.coeff[i];
+    if (i <= a->deg) {
+      w += a->coeff[i];
     }
-    if (i <= b.deg) {
-      w += b.coeff[i];
+    if (i <= b->deg) {
+      w += b->coeff[i];
     }
     res->coeff[i] = w % p;
   }
@@ -85,26 +85,26 @@ void poly_sum(poly_t *res, poly_t a, poly_t b, uint8_t p) {
 }
 
 // Calculate res = a mod b, where a and b are polynomials over Fp.
-void poly_div(poly_t *res, poly_t a, poly_t b, uint8_t p) {
+void poly_div(poly_t *res, poly_t *a, poly_t *b, uint8_t p) {
   if (!res) {
     return;
   }
 
-  memcpy(res->coeff, a.coeff, sizeof(*a.coeff) * (a.deg + 1));
-  res->deg = a.deg;
+  memmove(res->coeff, a->coeff, sizeof(*a->coeff) * (a->deg + 1));
+  res->deg = a->deg;
 
-  if (res->deg < b.deg) {
+  if (res->deg < b->deg) {
     return;
   }
 
   // At this point a.deg >= b.deg
-  res->deg = b.deg - 1;
+  res->deg = b->deg - 1;
 
-  uint8_t n = a.deg;
-  uint8_t m = b.deg;
+  uint8_t n = a->deg;
+  uint8_t m = b->deg;
 
   uint8_t *u = res->coeff;
-  uint8_t *v = b.coeff;
+  uint8_t *v = b->coeff;
 
   uint8_t q;
   uint8_t w;
@@ -120,41 +120,41 @@ void poly_div(poly_t *res, poly_t a, poly_t b, uint8_t p) {
 }
 
 // Set res = a * b mod p. Must be guaranteed res is niether a nor b.
-void poly_mul(poly_t *res, poly_t a, poly_t b, uint8_t p) {
+void poly_mul(poly_t *res, poly_t *a, poly_t *b, uint8_t p) {
   if (!res) {
     return;
   }
-  memset(res->coeff, 0, sizeof(*res->coeff) * (a.deg + b.deg + 1));
-  for (size_t i = 0; i <= a.deg; ++i) {
-    for (size_t j = 0; j <= b.deg; ++j) {
-      res->coeff[i + j] = (res->coeff[i + j] + a.coeff[i] * b.coeff[j]) % p;
+  memset(res->coeff, 0, sizeof(*res->coeff) * (a->deg + b->deg + 1));
+  for (size_t i = 0; i <= a->deg; ++i) {
+    for (size_t j = 0; j <= b->deg; ++j) {
+      res->coeff[i + j] = (res->coeff[i + j] + a->coeff[i] * b->coeff[j]) % p;
     }
   }
-  res->deg = a.deg + b.deg;
+  res->deg = a->deg + b->deg;
 }
 
-void poly_fpowm(poly_t *res, poly_t a, uint64_t exp, poly_t I, uint8_t p) {
+void poly_fpowm(poly_t *res, poly_t *a, uint64_t exp, poly_t *I, uint8_t p) {
   if (!res) {
     return;
   }
 
-  poly_t *base = poly_create_zero(I.deg + I.deg);
-  memcpy(base->coeff, a.coeff, (a.deg + 1) * sizeof(*base->coeff));
-  base->deg = a.deg;
+  poly_t *base = poly_create_zero(I->deg + I->deg);
+  memcpy(base->coeff, a->coeff, (a->deg + 1) * sizeof(*base->coeff));
+  base->deg = a->deg;
 
   // Temporary buffer
-  poly_t *buff = poly_create_zero(I.deg + I.deg);
+  poly_t *buff = poly_create_zero(I->deg + I->deg);
 
   // Set prod equal to 1. Prod holds the result.
-  poly_t *prod = poly_create_zero(I.deg + I.deg);
+  poly_t *prod = poly_create_zero(I->deg + I->deg);
   *prod->coeff = 1;
 
   int8_t *tmp = NULL;
   while (exp > 0) {
     if ((exp % 2) != 0) {
       // Set buff = prod * base
-      poly_mul(buff, *prod, *base, p);
-      poly_div(buff, *buff, I, p);
+      poly_mul(buff, prod, base, p);
+      poly_div(buff, buff, I, p);
       // Swap buff and prod.
       tmp = prod->coeff;
       prod->coeff = buff->coeff;
@@ -162,8 +162,8 @@ void poly_fpowm(poly_t *res, poly_t a, uint64_t exp, poly_t I, uint8_t p) {
       buff->coeff = tmp;
     }
     // Set buff = base * base;
-    poly_mul(buff, *base, *base, p);
-    poly_div(buff, *buff, I, p);
+    poly_mul(buff, base, base, p);
+    poly_div(buff, buff, I, p);
     exp = exp / 2;
     // Swap buff and base.
     tmp = base->coeff;

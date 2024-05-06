@@ -52,23 +52,26 @@ uint32_t GF_elem_to_uint32(GF_elem_t *a);
    Meaning they have the same characteristic and irreducible polynomials. */
 bool GF_eq(const GF_t *F, const GF_t *K);
 
+/* Return a copy of an a. */
+GF_elem_t *GF_elem_cpy(GF_elem_t *a);
+
 /* res = a + b mod (I). */
-void GF_elem_sum(GF_elem_t *res, GF_elem_t a, GF_elem_t b);
+void GF_elem_sum(GF_elem_t *res, GF_elem_t *a, GF_elem_t *b);
 
 /* res = a - b mod (I). */
-void GF_elem_diff(GF_elem_t *res, GF_elem_t a, GF_elem_t b);
+void GF_elem_diff(GF_elem_t *res, GF_elem_t *a, GF_elem_t *b);
 
 /* res = a * b mod (I). */
-void GF_elem_prod(GF_elem_t *res, GF_elem_t a, GF_elem_t b);
+void GF_elem_prod(GF_elem_t *res, GF_elem_t *a, GF_elem_t *b);
 
 /* Calculate res: a = b * res mod (I). */
-void GF_elem_div(GF_elem_t *res, GF_elem_t a, GF_elem_t b);
+void GF_elem_div(GF_elem_t *res, GF_elem_t *a, GF_elem_t *b);
 
 /* Return res = -a mod p. */
-GF_elem_t *GF_elem_get_complement(GF_elem_t a);
+GF_elem_t *GF_elem_get_complement(GF_elem_t *a);
 
 /* Calculate res: res * a = 1 mod (I). */
-GF_elem_t *GF_elem_get_inverse(GF_elem_t a);
+GF_elem_t *GF_elem_get_inverse(GF_elem_t *a);
 
 /* Return neutral element of the given finite field. */
 GF_elem_t *GF_elem_get_neutral(GF_t *GF);

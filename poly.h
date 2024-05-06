@@ -21,16 +21,16 @@ bool poly_eq(const poly_t *a, const poly_t *b);
 poly_t *poly_create_zero(size_t len);
 
 /* Set res = a + b, where a and b are polynomials over Fp. */
-void poly_sum(poly_t *res, poly_t a, poly_t b, uint8_t p);
+void poly_sum(poly_t *res, poly_t *a, poly_t *b, uint8_t p);
 
 /* Set res = a mod b, where a and b are polynomials over Fp. */
-void poly_div(poly_t *res, poly_t a, poly_t b, uint8_t p);
+void poly_div(poly_t *res, poly_t *a, poly_t *b, uint8_t p);
 
 /* Calculate res = a * b. */
-void poly_mul(poly_t *res, poly_t a, poly_t b, uint8_t p);
+void poly_mul(poly_t *res, poly_t *a, poly_t *b, uint8_t p);
 
 /* Calculate res = a^exp mod (I) */
-void poly_fpowm(poly_t *res, poly_t a, uint64_t exp, poly_t I, uint8_t p);
+void poly_fpowm(poly_t *res, poly_t *a, uint64_t exp, poly_t *I, uint8_t p);
 
 /* Normalize the degree of the given polynomial. */
 void poly_normalize_deg(poly_t *a);
