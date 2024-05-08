@@ -41,14 +41,16 @@ Open the terminal and follow these steps:
 
     1. **crs_ord=\<num\>** &mdash; where num a positive number.
 
-    2. **crs_coeffs=\<num1,num2,...\>** &mdash; where **\<num1,num2,...\>**. are positive numbers of length **crs_ord**.
+    2. **crs_coeffs=\<num1,num2,...\>** &mdash; where **\<num1,num2,...\>**. are positive bytes of length **crs_ord**.
 
     3. **crs_vals=\<num1,num2,...\>** &mdash; same as **crs_coeffs**.
+    
+    4. **crs_const=\<num>\** &mdash; a positive byte.
 
     For example:
 
     ```sh
-    sudo insmod rngdrv.ko crs_order=3 crs_coeffs=2,4,8 crs_vals=15,3,9
+    sudo insmod rngdrv.ko crs_order=3 crs_coeffs=2,4,8 crs_vals=15,3,9 crs_const=10
     ```
 
 5. Output the stream of random bytes:
